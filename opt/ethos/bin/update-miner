@@ -1,0 +1,159 @@
+#!/bin/bash
+# LICENSE AGREEMENT
+#
+# File Version See $VERSION Variable (c) 2016 Dale Chapman, sling00@gmail.com (“Author”).
+#
+# By using this file, you agree to the following:
+#
+# This file has been licensed to gpuShack for the exclusive use and distribution as part of ethOS. All other previous licenses
+# of this file have been revoked. This license does not expire and allows for any modification, distribution, and/or derivative work
+# by gpuShack and by the Author. This license extends to gpuShack’s owners, operators, officers, and contractors, where
+# applicable.
+#
+# The Author expressly forbids and revokes usage of this file, as well as any previous iterations of this file, in any
+# operating system other than ethOS. Any fork of ethOS, third party or otherwise, may not use this file without express written
+# permission from the Author.
+#
+# Personal Use
+#
+# End users may modify and use this script for personal use, but may not redistribute or include in a larger work, in whole, or
+# in part, without express written permission from the Author.
+#
+# Version History
+#
+# v1.x - EthOS Release
+# v.1 - Development Release
+#
+# Portions derived from previous work by Author
+#
+# Red Goat License (v) 1.0
+#
+# This file is released under the "Small Goat with Red Eyes" license. Breaking the above license agreement will result in a
+# small goat with red eyes visiting you while you sleep.
+function dot(){
+	echo -n "."
+}
+UPDATEMINER="$1"
+MINER=$(/opt/ethos/sbin/ethos-readconf miner)
+if [[ "$EUID" -ne "0" ]]; then
+	echo "This script must be run as root, please rerun as \"sudo update-miner\"" 
+	exit 1
+fi
+
+MIRROR1=$(getent hosts update.ethosdistro.com | cut -d " " -f 1)
+#echo "MIRROR1 Resolves to: $MIRROR1"
+MIRROR2=$(getent hosts update2.ethosdistro.com | cut -d " " -f 1)
+#echo "MIRROR2 Resolves to: $MIRROR2"
+function f.mirrorselect.randomize() {
+	if [ "$(( RANDOM % 2 ))" -eq "0" ];then
+		#echo "Using update server: $MIRROR1"
+		SERVER="http://$MIRROR1"
+	else
+		#echo "Using update server: $MIRROR2"
+		SERVER="http://$MIRROR2"
+	fi
+}
+
+function f.mirrorselect(){
+	SERVERSTATUS1=$(curl -s -o /dev/stderr -w "%{http_code}" "http://$MIRROR1/status/" 2>/dev/null)
+	SERVERSTATUS2=$(curl -s -o /dev/stderr -w "%{http_code}" "http://$MIRROR2/status/" 2>/dev/null)
+	SERVERSTATUS3=$(curl -s -o /dev/stderr -w "%{http_code}" "http://162.243.39.238/status/" 2>/dev/null)
+	S1AVAILABLE=$(curl -f -s -S -k http://"$MIRROR1"/status/ 2>/dev/null)
+	#echo "Server Status:"
+	#echo "Update Server 1: $S1AVAILABLE"
+	S2AVAILABLE=$(curl -f -s -S -k http://"$MIRROR2"/status/ 2>/dev/null)
+	#echo "Update Server 2: $S2AVAILABLE"
+	S3AVAILABLE=$(curl -f -s -S -k http://162.243.39.238/status/ 2>/dev/null)
+	#echo "Update Server 3: $S3AVAILABLE"
+
+	if [ "$S1AVAILABLE" = "maintenance" ] && [ "$S2AVAILABLE" = "maintenance" ] && [ "$S3AVAILABLE" = "maintenance" ];then
+		echo "Update servers are temporarily unavailable due to maintenance.  Please try again later."
+		exit 1
+  	fi
+	if [ "$SERVERSTATUS1" -ne "200" ] && [ "$SERVERSTATUS2" -ne "200" ] && [ "$SERVERSTATUS3" -ne "200" ];then
+		echo "Update servers are unreachable. Please check your network connection, or try again later."
+		exit 1
+	fi
+	if [ "$SERVERSTATUS1" = "200" ] && [ "$SERVERSTATUS2" = "200" ] && [ "$S1AVAILABLE" = "online" ] && [ "$S2AVAILABLE" = "online" ];then
+		f.mirrorselect.randomize
+	elif [ "$SERVERSTATUS1" = "200" ] && [ "$S1AVAILABLE" = "online" ];then
+		SERVER="http://$MIRROR1"
+	elif [ "$SERVERSTATUS2" = "200" ] && [ "$S2AVAILABLE" = "online" ];then
+		SERVER="http://$MIRROR2"
+	elif [ "$SERVERSTATUS3" = "200" ] && [ "$S3AVAILABLE" = "online" ] && [ "$SERVERSTATUS1" -ne "200" ] && [ "$SERVERSTATUS2" -ne "200" ];then
+		SERVER="http://162.243.39.238"
+  	fi
+}
+
+f.mirrorselect
+
+function f.installminer(){
+	if [ "$MINER" = "$UPDATEMINER" ];then
+		ALLOWED=$(cat /opt/ethos/etc/allow.file)
+		/opt/ethos/bin/minestop >/dev/null 2>&1
+		if [ "$ALLOWED" = "1" ];then
+			/opt/ethos/bin/disallow >/dev/null 2>&1
+			RESETALLOW="1"
+		fi
+	fi
+	shopt -s dotglob;shopt -s globstar
+	DIR=$(echo /tmp/extract/* | xargs -0 )
+	#echo "$DIR"
+	cd "$DIR"
+	FILES=( $(echo ./** | sed -e 's/\.\///g' | xargs) )
+
+	rm -rf "/opt/miners/$UPDATEMINER/*"
+	#echo "${FILES[@]}"
+	for f in "${FILES[@]}";do
+		if [ -d "$f" ];then
+			#echo "DEBUG: check if DIR $f exists"
+			mkdir -p "/opt/miners/$UPDATEMINER/$f"
+			dot
+		fi
+	done
+	for f in "${FILES[@]}";do
+		if [ -f "$f" ];then
+			#echo "DEBUG: copy file $f to /opt/miners/$UPDATEMINER/$f"
+			cp "$DIR/$f" "/opt/miners/$UPDATEMINER/$f"
+			dot
+		fi
+	done
+	if [ "$RESETALLOW" = "1" ]; then
+		/opt/ethos/bin/allow >/dev/null 2>&1
+	fi
+	dot
+	chown -R ethos.ethos /opt/miners
+	service ethos-miner-monitor restart >/dev/null 2>&1
+	rm -rf /tmp/extract/*
+	echo "$(date -u) finished on $HOSTNAME"
+}
+
+function f.getupdate(){
+	#echo "Downloading miner update package for $UPDATEMINER"
+	if [ ! -d "/opt/ethos-update/updates/$UPDATEMINER" ];then
+		curl -s -o "/tmp/$UPDATEMINER.tar.gz" "$SERVER/miners/$UPDATEMINER/$UPDATEMINER-latest.tar.gz"  >/dev/null 2>&1
+		if [ "$?" = "0" ]; then
+			mkdir -p /tmp/extract
+			dot
+			tar xf "/tmp/$UPDATEMINER.tar.gz" -C /tmp/extract
+			dot
+			rm -f "/tmp/$UPDATEMINER.tar.gz"
+			f.installminer
+		else
+			echo "Download of $UPDATEMINER-latest.tar.gz failed, stopping update process."
+			exit 1
+		fi
+	fi
+}
+case "$UPDATEMINER" in
+	ccminer | marlin | cgminer-skein |claymore | claymore-zcash | ethminer | ewbf-zcash | optiminer-zcash | sgminer-gm )
+		NEWVERSION=$(curl -f -s -S -k "$SERVER/miners/versions" | grep -Poi "(?<=$UPDATEMINER\s)(.*)")
+		echo "$(date -u) Starting miner update $UPDATEMINER to $NEWVERSION on $HOSTNAME"
+		f.getupdate
+	;;
+	* )
+		echo "Usage: \"update-miner <miner>\""
+		echo "Example: \"update-miner sgminer-gm\""
+		echo "Valid miners: ccminer marlin cgminer-skein claymore claymore-zcash ewbf-zcash ethminer optiminer-zcash sgminer-gm"
+	;;
+esac
