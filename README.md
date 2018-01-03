@@ -5,7 +5,9 @@
 Put the configs and scripts folder in your /home/ethos/ folder
 
 Run:
+
 `sudo su`
+
 `crontab -e`
 
  Add following line to your crontabs for an hourly coin switch:
@@ -24,7 +26,7 @@ Backup of your /opt/ folder before applying the modified files!
 This has not been tested on a new system: I don't take responsibility in case the modifications on your system lead to any problems.
 
 ## Usage
-To enable a new coin you'll have to place the a config file in the configs folder. The script will automatically use the tag in the filename to associate the config for the specific coin.
+To enable a new coin you'll have to place the config file in the configs folder. The script will automatically use the tag in the filename to associate the config for the specific coin.
 
 E.g. poolname-ETH.conf = ETH
 
