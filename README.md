@@ -7,6 +7,7 @@ Put the configs and scripts folder in your /home/ethos/ folder
 Run:
 `sudo su`
 `crontab -e`
+
  Add following line to your crontabs for an hourly coin switch:
 `0 * * * * /home/ethos/scripts/main.sh`
 
@@ -20,7 +21,11 @@ The modified ethos files can probably copied without issues to your own 1.2.6 et
 
 Backup of your /opt/ folder before applying the modified files!
 
+This has not been tested on a new system: I don't take responsibility in case the modifications on your system lead to any problems.
+
 ### Donations welcome
 BTC: 1By4eLJuRu18iQG2GpazsxzvnAbLSvsNv9
+
 ETH: 0x723929ab2da99BaF5EAC9EEAaF650E0770A9d6C0
+
 BCC: 1QFDDn2XA4GHcUXe7pUHtAPKvUQEVdgxVc
