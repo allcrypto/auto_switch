@@ -23,6 +23,13 @@ Backup of your /opt/ folder before applying the modified files!
 
 This has not been tested on a new system: I don't take responsibility in case the modifications on your system lead to any problems.
 
+## Usage
+To enable a new coin you'll have to place the a config file in the configs folder. The script will automatically use the tag in the filename to associate the config for the specific coin.
+
+E.g. poolname-ETH.conf = ETH
+
+poolname-KMD.conf = KMD
+
 #### Donations welcome
 BTC: 1By4eLJuRu18iQG2GpazsxzvnAbLSvsNv9
 
