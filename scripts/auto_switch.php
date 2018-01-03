@@ -1,48 +1,41 @@
 <?php
+	$DUST_COLLECT = TRUE;
+	$DUST_COLLECT_START = 12; // Time Range For Dust Collect ( START )
+	$DUST_COLLECT_END = 16; // Time Range For Dust Collect ( END )
+
+	// Change dir to home folder
 	chdir('/home/ethos/');
-	$hour = date('H', time());
+	
+	// Load all configs ( Coins )
 	$COINS = FALSE;
-	$COINS['ETH'] = array('config' => 'suprnova-eth.conf'); // Ethash
-	$COINS['ZCL'] = array('config' => 'suprnova-zcl.conf'); // Equihash
-	$COINS['HUSH'] = array('config' => 'suprnova-hush.conf'); // Equihash
-	$COINS['ORB'] = array('config' => 'theblocksfactory-orb.conf'); // Neoscrypt
-	$COINS['LBC'] = array('config' => 'suprnova-lbc.conf'); // LBRY
-	$COINS['ZEC'] = array('config' => 'suprnova-zec.conf'); // Equihash
-	$COINS['DGB'] = array('config' => 'suprnova-dgb.conf'); // Myriad-Groestl
-	$COINS['DCR'] = array('config' => 'suprnova-dcr.conf'); // Decred
-	$COINS['PXC'] = array('config' => 'theblocksfactory-pxc.conf'); // Neoscrypt
-	$COINS['SIB'] = array('config' => 'suprnova-sib.conf'); // Neoscrypt
-	$COINS['KMD'] = array('config' => 'suprnova-kmd.conf'); // Equihash
-	$COINS['ZEN'] = array('config' => 'suprnova-zen.conf'); // Equihash
-	$COINS['FTC'] = array('config' => 'miningpoolhub-ftc.conf'); // Neoscrypt
-	$COINS['MONA'] = array('config' => 'suprnova-mona.conf'); // Lyra2REv2
-	$COINS['VTC'] = array('config' => 'miningpoolhub-vtc.conf'); // Lyra2REv2
-	$COINS['BTG'] = array('config' => 'suprnova-btg.conf'); // Equihash
-	$COINS['UBQ'] = array('config' => 'ubiqpool-ubq.conf'); // Ethash
+	$files = scandir('/home/ethos/configs');
+	foreach($files as $filename)
+	{
+		if(strpos($filename, '-') === FALSE)
+			continue;
+		
+		$split = explode('-', $filename);
+		$pool = $split[0];
+		$tag = $split[1];
+		if(strpos($tag, '.'))
+			$tag = substr($tag, 0, strpos($tag, '.'));
+		
+		$COINS[strtoupper($tag)] = array('config' => $filename);
+	}
 	
 	// File to disable the auto switch
 	if(file_exists('scripts/no-autoswitch'))
 		die();
 	
+	$hour = date('H', time());
 	// Mine random coins between 12 - 16 ( dust collection )
-	if($hour >= 12 && $hour < 16)
+	if($DUST_COLLECT && ($hour >= $DUST_COLLECT_START && $hour < $DUST_COLLECT_END))
 	{
 		$current_coin = file_get_contents('scripts/current_coin.txt');
+		unset($COINS[$current_coin]);
 		$new_coin = array_rand($COINS);
-		if($new_coin == $current_coin)
-			$new_coin = array_rand($COINS);
-		if($new_coin == $current_coin)
-			return;
-		
-		// Switch coin
-		file_put_contents('scripts/current_coin.txt', $new_coin, LOCK_EX);
-		$config_file = $COINS[$new_coin]['config'];
-		copy("configs/".$config_file, "local.conf");
-		sleep(5);
-		shell_exec('/opt/ethos/bin/minestop');
-		sleep(5);
-		$output = shell_exec('/opt/ethos/bin/restart-proxy 2>&1');
-		file_put_contents('scripts/log', date('m/d/Y H:i:s')." - Switching to $new_coin (Dust Collect): $output.\r\n", FILE_APPEND | LOCK_EX);
+		if(switch_coin($new_coin))
+			file_put_contents('scripts/log', date('m/d/Y H:i:s')." - Switched to $new_coin (Dust Collect)\r\n", FILE_APPEND | LOCK_EX);
 	}
 	else
 	{
@@ -76,21 +69,31 @@
 			$new_coin = key($profits);
 			$new_profit = current($profits); 
 			
-			// Get current active coin
-			$current_coin = file_get_contents('scripts/current_coin.txt');
-			if($new_coin == $current_coin)
-				return;
-			
-			// Switch coin
-			file_put_contents('scripts/current_coin.txt', $new_coin, LOCK_EX);
-			$config_file = $COINS[$new_coin]['config'];
-			copy("configs/".$config_file, "local.conf");
-			sleep(5);
-			shell_exec('/opt/ethos/bin/minestop');
-			sleep(5);
-			$output = shell_exec('/opt/ethos/bin/restart-proxy 2>&1');
-			file_put_contents('scripts/log', date('m/d/Y H:i:s')." - Switching to $new_coin ($new_profit): $output.\r\n", FILE_APPEND | LOCK_EX);
+			if(switch_coin($new_coin))
+				file_put_contents('scripts/log', date('m/d/Y H:i:s')." - Switched to $new_coin ($new_profit)\r\n", FILE_APPEND | LOCK_EX);
 		}
+	}
+	
+	function switch_coin($new_coin)
+	{
+		global $COINS;
+		
+		// Coin already active? Nothing to do..
+		$current_coin = file_get_contents('scripts/current_coin.txt');
+		if($new_coin == $current_coin)
+			return FALSE;
+		
+		// Switch coin
+		file_put_contents('scripts/current_coin.txt', $new_coin, LOCK_EX);
+		$config_file = $COINS[$new_coin]['config'];
+		copy("configs/".$config_file, "local.conf");
+		sleep(5);
+		shell_exec('/opt/ethos/bin/minestop');
+		sleep(5);
+		$output = shell_exec('/opt/ethos/bin/restart-proxy 2>&1');
+		echo "EXEC: $output";
+		
+		return TRUE;
 	}
 	
 	function float_rsort($a, $b) {
