@@ -2,7 +2,7 @@
 
 ## Installation
 
-Put the configs and scripts folder in your /home/ethos/ folder
+Put the "configs" and "scripts" folder in your /home/ethos/ folder
 
 Run:
 
@@ -11,6 +11,7 @@ Run:
 `crontab -e`
 
  Add following line to your crontabs for an hourly coin switch:
+
 `0 * * * * /home/ethos/scripts/main.sh`
 
 ## ethOS system changes might be needed for ccminer support!
