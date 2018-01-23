@@ -134,9 +134,12 @@
 		private function switch_coin($new_coin)
 		{
 			// Coin already active? Nothing to do..
-			$current_coin = file_get_contents($this->home_path.'scripts/current_coin.txt');
-			if($new_coin == $current_coin)
-				return FALSE;
+			if(file_exists($this->home_path.'scripts/current_coin.txt'))
+			{
+				$current_coin = file_get_contents($this->home_path.'scripts/current_coin.txt');
+				if($new_coin == $current_coin)
+					return FALSE;
+			}
 			
 			// Switch coin
 			file_put_contents($this->home_path.'scripts/current_coin.txt', $new_coin, LOCK_EX);
@@ -146,7 +149,10 @@
 			shell_exec('/opt/ethos/bin/minestop');
 			sleep(5);
 			$output = shell_exec('/opt/ethos/bin/restart-proxy 2>&1');
-			echo "EXEC: $output";
+			$this->output("Restarting Proxy: $output");
+			shell_exec('/opt/ethos/sbin/ethos-overclock > /dev/null 2>&1 &'); // ethos-overclock log at: /var/log/ethos-overclock.log
+			$this->output("Started ethos-overclock");
+			$this->output("Switch complete");
 			
 			return TRUE;
 		}
@@ -154,6 +160,10 @@
 		/////////////////
 		//// HELPERS
 		
+		private function output($message)
+		{
+			echo "$message\r\n";
+		}
 		private function write_log($log)
 		{
 			file_put_contents($this->home_path.'scripts/log', $log, FILE_APPEND | LOCK_EX);
