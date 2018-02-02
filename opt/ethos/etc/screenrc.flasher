@@ -1,8 +1,0 @@
-caption always
-caption string "%{= RW} $STY | %c:%s | host:%H | load:%l | DO NOT PRESS ANY KEYS"
-multiuser on
-acladd root
-bindkey "\003" stuff "You\'re trying to brick your motherboard. Duly noted. \n"
-bindkey "\032" stuff "As your motherboard, I must ask you to stop trying to kill me. :( \n"
-bindkey "\06B" stuff "WARRANTY VOIDED FOR ATTEMPTED SABOTAGE! - Your motherboard manufacturer \n"
-
