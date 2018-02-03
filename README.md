@@ -2,9 +2,8 @@
 
 ## Installation
 
-Put the "configs" and "scripts" folder in your /home/ethos/ folder
-
 Run:
+`git clone https://github.com/allcrypto/auto_switch.git`
 
 `sudo su`
 
@@ -12,28 +11,24 @@ Run:
 
  Add following line to your crontabs for an hourly coin switch:
 
-`0 * * * * /home/ethos/scripts/main.sh`
-
-## ethOS system changes might be needed for ccminer support!
-
-CCMiner did not come with the default installation and the upgrade to 1.2.6. Many of my config files I provided are using ccminer as the global miner.
-
-I had to manually modify parts of the ethOS system to get additional miners supported ( e.g. ccminer, ewbf-zcash ).
-
-The modified ethos files can probably be copied without issues to your own 1.2.6 ethOS system but will most likely not allow ethOS to be upgraded without corrupting the system in one way or another.
-
-Backup of your /opt/ folder before applying the modified files!
-
-This has not been tested on a new system: I don't take responsibility in case the modifications on your system lead to any problems.
+`0 * * * * /home/ethos/auto_switch/scripts/main.sh`
 
 ## Usage
-To enable a new coin you'll have to place the config file in the configs folder. The script will automatically use the tag in the filename to associate the config for the specific coin.
+To enable a new coin you'll have to place the config file in the configs folder.
+The script will automatically use the tag in the filename to associate the config for the specific coin.
 
 E.g. poolname-ETH.conf = ETH
 
 poolname-KMD.conf = KMD
 
+### Logs
+After every coin switch the miner log is being copied to the /logs/ folder. That way you can more easily track if a config file wasn't working.
+
+There's also a main log of the script itself which is written to scripts/log
+
 #### Donations welcome
+Consider sending me a cup of joe if you want to support further development of this script.
+
 BTC: 1By4eLJuRu18iQG2GpazsxzvnAbLSvsNv9
 
 ETH: 0x723929ab2da99BaF5EAC9EEAaF650E0770A9d6C0
