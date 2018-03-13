@@ -1,5 +1,10 @@
 <?php
 	//////////
+	///// General Config
+	//////////
+	define('RUN_ETHOS_OVERCLOCK', FALSE); // Run ethos-overclock after config switch
+	
+	//////////
 	///// Mining specific coins in specific times
 	//////////
 	$COIN_TIMERS = FALSE;

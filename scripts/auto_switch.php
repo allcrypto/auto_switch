@@ -3,6 +3,7 @@
 
 	class auto_switch
 	{
+		public $run_ethos_overclock = FALSE;
 		public $dust_collect_enabled = TRUE; // Mine for specific time some of the least mined coins instead of only the most profitable
 		public $dust_collect_start = 23; // Time Range For Dust Collect ( START )
 		public $dust_collect_end = 4; // Time Range For Dust Collect ( END )
@@ -158,6 +159,12 @@
 		{
 			$this->coins = FALSE;
 			$files = scandir($this->home_path.'configs/');
+			
+			// Remove folders
+			foreach ($files as $key => $link)
+				if(!is_file($this->home_path.'configs/'.$link))
+					unset($files[$key]);
+				
 			foreach($files as $filename)
 			{
 				if(strpos($filename, '-') === FALSE)
@@ -226,8 +233,11 @@
 			sleep(5);
 			$output = shell_exec('/opt/ethos/bin/restart-proxy 2>&1');
 			$this->output("Restarting Proxy: $output");
-			shell_exec('/opt/ethos/sbin/ethos-overclock > /dev/null 2>&1 &'); // ethos-overclock log at: /var/log/ethos-overclock.log
-			$this->output("Started ethos-overclock");
+			if($this->run_ethos_overclock)
+			{
+				shell_exec('/opt/ethos/sbin/ethos-overclock > /dev/null 2>&1 &'); // ethos-overclock log at: /var/log/ethos-overclock.log
+				$this->output("Started ethos-overclock");
+			}
 			$this->output("Switch complete");
 			
 			return TRUE;
@@ -254,6 +264,7 @@
 	}
 	
 	$app = new auto_switch();
+	$app->run_ethos_overclock = RUN_ETHOS_OVERCLOCK;
 	$app->dust_collect_enabled = DUST_COLLECT_ENABLED;
 	$app->dust_collect_start = DUST_COLLECT_START;
 	$app->dust_collect_end = DUST_COLLECT_END;
